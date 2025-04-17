@@ -95,8 +95,8 @@ LANDING_PAGE_HTML = """
             </div>
         </div>
         
-        <a href="/ui" class="btn btn-primary btn-lg">Launch Interactive UI</a>
-        <a href="/api" class="btn btn-secondary btn-lg">API Documentation</a>
+        <a href="/proxy/8501/" class="btn btn-primary btn-lg" target="_blank">Launch Interactive UI</a>
+        <a href="/proxy/8000/docs" class="btn btn-secondary btn-lg" target="_blank">API Documentation</a>
     </div>
 </body>
 </html>
@@ -112,15 +112,15 @@ def index():
 def api_redirect():
     """Redirect to FastAPI documentation"""
     logger.info("Redirecting to FastAPI docs")
-    # Use direct URL since we're in Replit environment
-    return redirect('https://' + os.environ.get('REPL_SLUG', 'fraud-detection') + '.replit.dev/proxy/8000/docs')
+    # URL for API docs in Replit environment
+    return redirect('https://8000-bluecatlabs-itispayfrau-d58j18w2w0d.ws-eu110.gitpod.io/docs')
 
 @app.route('/ui')
 def ui_redirect():
     """Redirect to Streamlit UI"""
     logger.info("Redirecting to Streamlit UI")
-    # Use direct URL since we're in Replit environment
-    return redirect('https://' + os.environ.get('REPL_SLUG', 'fraud-detection') + '.replit.dev/proxy/8501/')
+    # URL for Streamlit UI in Replit environment
+    return redirect('https://3000-bluecatlabs-itispayfrau-d58j18w2w0d.ws-eu110.gitpod.io/')
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
