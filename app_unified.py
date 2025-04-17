@@ -1014,6 +1014,21 @@ def api_fraud_check():
         # Add processing time
         results['processing_time'] = round(time.time() - start_time, 4)
         
+        # Convert all numpy values to Python types
+        def convert_numpy_types(obj):
+            import numpy as np
+            if isinstance(obj, dict):
+                return {k: convert_numpy_types(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [convert_numpy_types(item) for item in obj]
+            elif isinstance(obj, np.number):  # Check for any numpy numeric type
+                return float(obj)
+            else:
+                return obj
+                
+        # Convert numpy types to Python types
+        results = convert_numpy_types(results)
+        
         # Print response status for debugging
         print("Response Status: 200 OK")
         print(f"Response Data: {results}")
@@ -1021,8 +1036,8 @@ def api_fraud_check():
         # Store in database
         with app.app_context():
             try:
-                # Ensure risk score is converted from numpy to Python float
-                if 'risk_score' in results:
+                # Already converted above, but keep this check for safety
+                if 'risk_score' in results and hasattr(results['risk_score'], 'item'):
                     results['risk_score'] = float(results['risk_score'])
                 
                 # Create a transaction record from the API result
