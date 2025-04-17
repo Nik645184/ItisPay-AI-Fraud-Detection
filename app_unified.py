@@ -611,11 +611,54 @@ def fraud_check_page():
                     alertsHtml += '<p>No alerts detected.</p>';
                 }
                 
+                // Determine which risk components are present
+                let riskDetails = '<div class="risk-components">';
+                
+                // Fiat risk
+                if (result.fiat_risk) {
+                    riskDetails += `
+                        <div class="risk-component">
+                            <h5>Fiat Risk: ${result.fiat_risk.score.toFixed(1)}</h5>
+                            ${result.fiat_risk.alerts && result.fiat_risk.alerts.length > 0 ? 
+                                '<ul>' + result.fiat_risk.alerts.map(alert => `<li>${alert}</li>`).join('') + '</ul>' : 
+                                '<p>No specific fiat risks detected.</p>'}
+                        </div>
+                    `;
+                }
+                
+                // Crypto risk
+                if (result.crypto_risk) {
+                    riskDetails += `
+                        <div class="risk-component">
+                            <h5>Crypto Risk: ${result.crypto_risk.score.toFixed(1)}</h5>
+                            ${result.crypto_risk.alerts && result.crypto_risk.alerts.length > 0 ? 
+                                '<ul>' + result.crypto_risk.alerts.map(alert => `<li>${alert}</li>`).join('') + '</ul>' : 
+                                '<p>No specific crypto risks detected.</p>'}
+                        </div>
+                    `;
+                }
+                
+                // USDC risk
+                if (result.usdc_risk) {
+                    riskDetails += `
+                        <div class="risk-component">
+                            <h5>USDC Risk: ${result.usdc_risk.score.toFixed(1)}</h5>
+                            ${result.usdc_risk.alerts && result.usdc_risk.alerts.length > 0 ? 
+                                '<ul>' + result.usdc_risk.alerts.map(alert => `<li>${alert}</li>`).join('') + '</ul>' : 
+                                '<p>No specific USDC risks detected.</p>'}
+                        </div>
+                    `;
+                }
+                
+                riskDetails += '</div>';
+                
                 // Rebuild the entire result content
                 document.getElementById('result-content').innerHTML = `
                     <h3>Risk Score: <span class="${riskClass}">${result.risk_score.toFixed(1)} (${result.risk_level})</span></h3>
                     <div>${alertsHtml}</div>
-                    <h4>Details:</h4>
+                    <h4>Risk Components:</h4>
+                    ${riskDetails}
+                    <h4>Full Details:</h4>
                     <div class="result-box">${JSON.stringify(result, null, 2)}</div>
                 `;
                 
