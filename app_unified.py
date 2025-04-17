@@ -1008,6 +1008,10 @@ def api_fraud_check():
         # Store in database
         with app.app_context():
             try:
+                # Ensure risk score is converted from numpy to Python float
+                if 'risk_score' in results:
+                    results['risk_score'] = float(results['risk_score'])
+                
                 # Create a transaction record from the API result
                 db_transaction = Transaction.from_api_result(transaction_data, results)
                 

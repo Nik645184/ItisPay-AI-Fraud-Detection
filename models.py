@@ -66,13 +66,17 @@ class Transaction(db.Model):
             transaction_type = 'crypto'
         
         # Create base transaction record
+        # Make sure numeric values are properly converted to Python native types
+        risk_score = float(analysis_result['risk_score'])
+        amount = float(transaction_data.get('fiat', {}).get('amount')) if has_fiat else float(transaction_data.get('crypto', {}).get('amount'))
+        
         transaction = cls(
             transaction_type=transaction_type,
-            risk_score=analysis_result['risk_score'],
+            risk_score=risk_score,
             risk_level=analysis_result['risk_level'],
             alerts=analysis_result['alerts'],
             # Use either fiat or crypto amount as the main amount
-            amount=transaction_data.get('fiat', {}).get('amount') if has_fiat else transaction_data.get('crypto', {}).get('amount'),
+            amount=amount,
             currency=transaction_data.get('fiat', {}).get('currency') if has_fiat else transaction_data.get('crypto', {}).get('currency')
         )
         
