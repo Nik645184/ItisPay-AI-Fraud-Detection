@@ -29,7 +29,7 @@ def start_fastapi():
 def start_streamlit():
     """Start the Streamlit UI on port 8501"""
     logger.info("Starting Streamlit UI on port 8501...")
-    os.system(f"{sys.executable} -m streamlit run ui.py --server.port=8501 --server.address=0.0.0.0")
+    os.system(f"{sys.executable} -m streamlit run ui.py --server.port=8501 --server.address=0.0.0.0 --server.headless=true")
 
 def main():
     """
