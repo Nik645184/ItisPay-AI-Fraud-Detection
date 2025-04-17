@@ -206,15 +206,13 @@ def index():
 def api_redirect():
     """Redirect to FastAPI documentation"""
     logger.info("Redirecting to FastAPI docs")
-    # URL for API docs in Replit environment
-    return redirect('https://8000-bluecatlabs-itispayfrau-d58j18w2w0d.ws-eu110.gitpod.io/docs')
+    return redirect('/proxy/8000/docs')
 
 @app.route('/ui')
 def ui_redirect():
     """Redirect to Streamlit UI"""
     logger.info("Redirecting to Streamlit UI")
-    # URL for Streamlit UI in Replit environment
-    return redirect('https://3000-bluecatlabs-itispayfrau-d58j18w2w0d.ws-eu110.gitpod.io/')
+    return redirect('/proxy/8501/')
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
