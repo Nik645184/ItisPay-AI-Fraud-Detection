@@ -96,9 +96,14 @@ class CryptoTransactionAnalyzer:
                 alerts.extend(pattern_alerts)
                 risk_score = max(risk_score, pattern_risk)
         else:
-            # No transaction history found
-            alerts.append("No transaction history found or API error")
-            risk_score = max(risk_score, 0.4)  # Moderate risk for no history
+            # No transaction history found - provide more specific message
+            if transaction['currency'] != 'ETH':
+                alerts.append(f"No Ethereum transaction history found for this {transaction['currency']} address")
+            else:
+                alerts.append("No Ethereum transaction history found")
+            
+            # Assign moderate risk for no history
+            risk_score = max(risk_score, 0.4)
         
         logger.info(f"Crypto analysis result: score={risk_score}, alerts={alerts}")
         return risk_score, alerts
@@ -131,10 +136,15 @@ class CryptoTransactionAnalyzer:
             logger.warning(f"Invalid amount format in crypto transaction: {transaction['amount']}")
             return False
         
-        # For now, we only support ETH
-        if transaction['currency'] != 'ETH':
-            logger.warning(f"Unsupported cryptocurrency: {transaction['currency']}")
-            # We'll still continue but make a note
+        # Process different cryptocurrencies
+        cryptocurrency = transaction['currency']
+        if cryptocurrency != 'ETH':
+            logger.info(f"Processing {cryptocurrency} transaction with Ethereum address verification")
+            
+            # We support all currencies that use Ethereum-compatible addresses
+            supported_currencies = ['ETH', 'USDT', 'USDC', 'BTC', 'DAI', 'LINK', 'UNI']
+            if cryptocurrency not in supported_currencies:
+                logger.warning(f"Cryptocurrency {cryptocurrency} may have limited analysis support")
         
         return True
     
@@ -179,10 +189,14 @@ class CryptoTransactionAnalyzer:
             logger.info(f"Using cached transaction data for address: {address}")
             return self.address_cache[address]
         
-        # For now, only ETH is supported properly
+        # Handle different cryptocurrencies
         if currency != 'ETH':
-            logger.warning(f"Transaction history lookup only supported for ETH, not {currency}")
-            return None
+            logger.info(f"Non-ETH currency detected: {currency}. Using compatible ETH address lookup.")
+            # For non-ETH currencies, we'll still check the address using Etherscan if it's a valid ETH address
+            # But we note that it's a different currency
+            if not is_valid_eth_address(address):
+                logger.warning(f"Invalid Ethereum address format for {currency} lookup: {address}")
+                return None
         
         try:
             logger.info(f"Fetching transactions for address: {address}")
@@ -268,9 +282,18 @@ class CryptoTransactionAnalyzer:
                 elif 'to' in tx and tx['to'] and tx['to'].lower() in KNOWN_MIXER_ADDRESSES:
                     counterparty = tx['to'].lower()
                 
-                # Calculate value
-                value = float(tx.get('value', 0)) / 1e18  # Convert from wei to ETH
-                total_value += value
+                # Calculate value - safely parse value to avoid integer overflow
+                try:
+                    raw_value = tx.get('value', '0')
+                    # Ensure we're dealing with a string to prevent integer overflow
+                    if not isinstance(raw_value, str):
+                        raw_value = str(raw_value)
+                    # Convert from wei to ETH, safely handling large numbers
+                    value = float(raw_value) / 1e18
+                    total_value += value
+                except (ValueError, OverflowError) as e:
+                    logger.warning(f"Error converting transaction value: {e}")
+                    value = 0
                 
                 if counterparty:
                     mixer_transactions += 1
@@ -359,6 +382,10 @@ class CryptoTransactionAnalyzer:
             
         except Exception as e:
             logger.error(f"Error analyzing transaction patterns: {e}")
+            # Добавляем информативное сообщение в список предупреждений вместо прекращения анализа
+            alerts.append(f"Не удалось выполнить полный анализ транзакций: {str(e)}")
+            # Устанавливаем умеренный уровень риска, так как мы не смогли выполнить полный анализ
+            risk_score = max(risk_score, 0.3)
         
         return risk_score, alerts
 
