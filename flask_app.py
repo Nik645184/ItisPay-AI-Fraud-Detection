@@ -84,6 +84,25 @@ LANDING_PAGE_HTML = """
             max-width: 500px;
             text-align: left;
         }
+        .badge {
+            display: inline-block;
+            padding: 0.25em 0.6em;
+            font-size: 75%;
+            font-weight: 600;
+            text-align: center;
+            white-space: nowrap;
+            vertical-align: baseline;
+            border-radius: 0.375rem;
+            margin: 0 0.2rem;
+        }
+        .badge-success {
+            background-color: #28a745;
+            color: white;
+        }
+        .badge-info {
+            background-color: #17a2b8;
+            color: white;
+        }
     </style>
 </head>
 <body>
@@ -113,6 +132,34 @@ LANDING_PAGE_HTML = """
                 <div class="feature-item">
                     <span class="feature-icon">✅</span>
                     <div>Explainable risk alerts with specific fraud indicators</div>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">✅</span>
+                    <div>PostgreSQL database for transaction history storage</div>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">✅</span>
+                    <div>Interactive transaction history with filtering and visualization</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card p-3 mt-4">
+            <h3>System Components <span class="badge badge-success">Active</span></h3>
+            <p>The ItisPay Fraud Detection system consists of the following components:</p>
+            
+            <div class="row text-center mb-4">
+                <div class="col-md-4 mb-3">
+                    <h5>Flask Frontend <span class="badge badge-info">Port 5000</span></h5>
+                    <p>Landing page and routing</p>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <h5>FastAPI Backend <span class="badge badge-info">Port 8000</span></h5>
+                    <p>Analysis and database operations</p>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <h5>Streamlit UI <span class="badge badge-info">Port 8501</span></h5>
+                    <p>Interactive user interface</p>
                 </div>
             </div>
         </div>

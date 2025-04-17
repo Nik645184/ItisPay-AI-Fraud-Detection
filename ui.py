@@ -315,25 +315,172 @@ def display_analysis_results(results):
         else:
             st.info("No crypto transaction data provided")
 
-def main():
-    # Header
-    st.title("🛡️ AI Fraud Detection - ItisPay")
+def fetch_transaction_history(
+    limit=20, 
+    offset=0, 
+    min_risk=None, 
+    max_risk=None, 
+    transaction_type=None
+):
+    """
+    Fetch transaction history from the API
+    
+    Args:
+        limit: Maximum number of transactions
+        offset: Pagination offset
+        min_risk: Minimum risk score
+        max_risk: Maximum risk score
+        transaction_type: Filter by transaction type
+        
+    Returns:
+        dict: Transaction history data
+    """
+    params = {"limit": limit, "offset": offset}
+    
+    if min_risk is not None:
+        params["min_risk"] = min_risk
+    
+    if max_risk is not None:
+        params["max_risk"] = max_risk
+    
+    if transaction_type:
+        params["transaction_type"] = transaction_type
+    
+    try:
+        response = requests.get(f"{API_URL}/transactions", params=params)
+        response.raise_for_status()
+        return response.json()
+    except Exception as e:
+        st.error(f"Error fetching transaction history: {e}")
+        return {"transactions": [], "total": 0}
+
+def show_transaction_history():
+    """Display transaction history page"""
+    st.title("Transaction History")
+    
+    # Filters sidebar
+    st.sidebar.title("Filters")
+    
+    min_risk = st.sidebar.slider(
+        "Minimum Risk Score", 
+        min_value=0.0, 
+        max_value=100.0, 
+        value=0.0, 
+        step=5.0
+    )
+    
+    max_risk = st.sidebar.slider(
+        "Maximum Risk Score", 
+        min_value=0.0, 
+        max_value=100.0, 
+        value=100.0, 
+        step=5.0
+    )
+    
+    transaction_type = st.sidebar.selectbox(
+        "Transaction Type",
+        options=["All", "fiat", "crypto", "both"],
+        index=0
+    )
+    
+    transaction_type = None if transaction_type == "All" else transaction_type
+    
+    # Pagination
+    items_per_page = st.sidebar.selectbox(
+        "Items per page",
+        options=[10, 20, 50, 100],
+        index=1
+    )
+    
+    # Fetch data
+    history_data = fetch_transaction_history(
+        limit=items_per_page,
+        min_risk=min_risk if min_risk > 0 else None,
+        max_risk=max_risk if max_risk < 100 else None,
+        transaction_type=transaction_type
+    )
+    
+    total_count = history_data.get("total", 0)
+    transactions = history_data.get("transactions", [])
+    
+    # Total statistics
+    st.metric(label="Total Transactions", value=total_count)
+    
+    if transactions:
+        # Convert to dataframe for display
+        df = pd.DataFrame([
+            {
+                "ID": t["id"],
+                "Type": t["transaction_type"],
+                "Amount": f"{t['amount']} {t['currency']}",
+                "Date": t["timestamp"],
+                "Risk Score": t["risk_score"],
+                "Risk Level": t["risk_level"]
+            }
+            for t in transactions
+        ])
+        
+        # Risk level color mapping
+        def color_risk_level(val):
+            if val == "Low":
+                return 'background-color: green; color: white'
+            elif val == "Medium":
+                return 'background-color: yellow; color: black'
+            elif val == "High":
+                return 'background-color: orange; color: black'
+            else:  # Critical
+                return 'background-color: red; color: white'
+        
+        # Apply styling
+        styled_df = df.style.applymap(
+            color_risk_level, 
+            subset=['Risk Level']
+        )
+        
+        # Display table
+        st.dataframe(styled_df)
+        
+        # Risk distribution chart
+        st.subheader("Risk Distribution")
+        risk_counts = df["Risk Level"].value_counts().reset_index()
+        risk_counts.columns = ["Risk Level", "Count"]
+        
+        # Set a specific order for risk levels
+        risk_order = ["Low", "Medium", "High", "Critical"]
+        risk_counts["Risk Level"] = pd.Categorical(
+            risk_counts["Risk Level"], 
+            categories=risk_order
+        )
+        risk_counts = risk_counts.sort_values("Risk Level")
+        
+        # Colors for each risk level
+        risk_colors = {
+            "Low": "green",
+            "Medium": "yellow",
+            "High": "orange",
+            "Critical": "red"
+        }
+        
+        fig = px.bar(
+            risk_counts, 
+            x="Risk Level", 
+            y="Count",
+            color="Risk Level",
+            color_discrete_map=risk_colors,
+            title="Distribution of Risk Levels"
+        )
+        
+        st.plotly_chart(fig)
+        
+    else:
+        st.info("No transactions found matching the criteria")
+
+def fraud_check_page():
+    """Display the fraud check page"""
     st.markdown("### Cross-Channel Fraud Detection for Fiat and Crypto Transactions")
     st.markdown("---")
     
-    # Sidebar
-    st.sidebar.header("About")
-    st.sidebar.markdown("""
-    This AI-powered fraud detection system analyzes both fiat and crypto transactions to provide a unified risk score.
-    
-    **Features:**
-    - Fiat transaction anomaly detection
-    - Crypto transaction risk analysis
-    - Cross-channel risk scoring
-    - Explainable alerts
-    """)
-    
-    st.sidebar.markdown("---")
+    # Sidebar options for fraud check
     st.sidebar.header("Options")
     
     # Option to use a sample transaction
@@ -449,6 +596,38 @@ def main():
                     st.success("Analysis complete!")
                     st.markdown("---")
                     display_analysis_results(results)
+
+
+def main():
+    """Main application entry point"""
+    # Header
+    st.title("🛡️ AI Fraud Detection - ItisPay")
+    
+    # Add navigation
+    page = st.sidebar.radio(
+        "Navigation",
+        ["Fraud Check", "Transaction History"]
+    )
+    
+    # Sidebar information section
+    st.sidebar.header("About")
+    st.sidebar.markdown("""
+    This AI-powered fraud detection system analyzes both fiat and crypto transactions to provide a unified risk score.
+    
+    **Features:**
+    - Fiat transaction anomaly detection
+    - Crypto transaction risk analysis
+    - Cross-channel risk scoring
+    - Explainable alerts
+    """)
+    
+    st.sidebar.markdown("---")
+    
+    # Show the selected page
+    if page == "Fraud Check":
+        fraud_check_page()
+    else:
+        show_transaction_history()
 
 if __name__ == "__main__":
     main()

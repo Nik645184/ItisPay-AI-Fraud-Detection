@@ -37,8 +37,19 @@ def main():
     """
     logger.info("Starting ItisPay Fraud Detection services...")
     
+    # Get Replit domain if available, or use localhost otherwise
+    replit_domain = os.environ.get("REPL_SLUG")
+    if replit_domain:
+        # We're in Replit, use proxy URLs
+        base_url = f"https://{replit_domain}.replit.app"
+        api_url = f"{base_url}/proxy/8000"
+    else:
+        # Local development
+        api_url = "http://localhost:8000"
+    
     # Set the API URL environment variable for the UI to connect to
-    os.environ["API_URL"] = "http://localhost:8000"
+    os.environ["API_URL"] = api_url
+    logger.info(f"Setting API_URL to {api_url}")
     
     # Start API server in a separate process
     api_process = Process(target=start_fastapi)
