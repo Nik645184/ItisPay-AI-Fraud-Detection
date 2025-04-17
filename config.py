@@ -4,8 +4,9 @@ import os
 ETHERSCAN_API_KEY = os.getenv("ETHERSCAN_API_KEY", "YourApiKeyToken")
 
 # Risk Score Configuration
-FIAT_WEIGHT = 0.5
-CRYPTO_WEIGHT = 0.5
+FIAT_WEIGHT = 0.4
+CRYPTO_WEIGHT = 0.4
+USDC_WEIGHT = 0.2
 
 # Risk Thresholds
 LOW_RISK_THRESHOLD = 30

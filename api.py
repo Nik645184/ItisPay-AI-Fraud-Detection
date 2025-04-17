@@ -97,6 +97,7 @@ class RiskResponse(BaseModel):
     alerts: List[str] = Field(..., description="List of risk alerts")
     fiat_risk: Optional[Dict[str, Any]] = Field(None, description="Fiat risk details")
     crypto_risk: Optional[Dict[str, Any]] = Field(None, description="Crypto risk details")
+    usdc_risk: Optional[Dict[str, Any]] = Field(None, description="USDC token risk details")
     processing_time: float = Field(..., description="Processing time in seconds")
 
 # Database dependency

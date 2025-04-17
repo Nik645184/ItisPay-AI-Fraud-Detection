@@ -43,7 +43,7 @@ class EtherscanRateLimiter:
         # Update last request time
         self.last_request_time = time.time()
 
-def analyze_usdc_erc20_transactions(address: str, etherscan_api_key: str = None) -> float:
+def analyze_usdc_erc20_transactions(address: str, etherscan_api_key: Optional[str] = None) -> float:
     """
     Analyze USDC (ERC-20) transactions for a given Ethereum address
     
