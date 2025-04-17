@@ -138,13 +138,26 @@ class CryptoTransactionAnalyzer:
         
         # Process different cryptocurrencies
         cryptocurrency = transaction['currency']
-        if cryptocurrency != 'ETH':
-            logger.info(f"Processing {cryptocurrency} transaction with Ethereum address verification")
-            
-            # We support all currencies that use Ethereum-compatible addresses
-            supported_currencies = ['ETH', 'USDT', 'USDC', 'BTC', 'DAI', 'LINK', 'UNI']
-            if cryptocurrency not in supported_currencies:
-                logger.warning(f"Cryptocurrency {cryptocurrency} may have limited analysis support")
+        address = transaction['address']
+        
+        # Проверка соответствия формата адреса и указанной криптовалюты
+        if cryptocurrency == 'ETH' or cryptocurrency in ['USDT', 'USDC', 'DAI', 'LINK', 'UNI']:
+            # Ethereum и токены ERC-20 должны иметь формат Ethereum адреса
+            if not is_valid_eth_address(address):
+                logger.warning(f"Неверный формат Ethereum адреса для {cryptocurrency}: {address}")
+                return False
+        elif cryptocurrency == 'BTC':
+            # Bitcoin адреса имеют другой формат
+            if is_valid_eth_address(address):
+                logger.warning(f"Указан Ethereum адрес для Bitcoin транзакции: {address}")
+                return False
+            # Простая проверка формата Bitcoin адреса
+            if not is_valid_btc_address(address):
+                logger.warning(f"Неверный формат Bitcoin адреса: {address}")
+                return False
+        else:
+            # Другие криптовалюты
+            logger.warning(f"Криптовалюта {cryptocurrency} может иметь ограниченную поддержку анализа")
         
         return True
     
