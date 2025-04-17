@@ -638,17 +638,7 @@ def fraud_check_page():
                     `;
                 }
                 
-                // USDC risk
-                if (result.usdc_risk) {
-                    riskDetails += `
-                        <div class="risk-component">
-                            <h5>USDC Risk: ${result.usdc_risk.score.toFixed(1)}</h5>
-                            ${result.usdc_risk.alerts && result.usdc_risk.alerts.length > 0 ? 
-                                '<ul>' + result.usdc_risk.alerts.map(alert => `<li>${alert}</li>`).join('') + '</ul>' : 
-                                '<p>No specific USDC risks detected.</p>'}
-                        </div>
-                    `;
-                }
+                // USDC risk is now part of the crypto risk analysis
                 
                 riskDetails += '</div>';
                 
