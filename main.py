@@ -8,6 +8,9 @@ import os
 import logging
 from flask import Flask, redirect, render_template_string
 
+# Import SQLAlchemy and models
+from models import db
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -17,6 +20,22 @@ logger = logging.getLogger(__name__)
 
 logger.info("Initializing Flask app for WSGI")
 app = Flask(__name__)
+
+# Configure the database
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+    "pool_recycle": 300,
+    "pool_pre_ping": True,
+}
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+# Initialize the database with the app
+db.init_app(app)
+
+# Create database tables if they don't exist
+with app.app_context():
+    logger.info("Creating database tables if they don't exist")
+    db.create_all()
 
 # HTML template for the landing page
 LANDING_PAGE_HTML = """

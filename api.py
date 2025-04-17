@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, validator
 import json
@@ -8,6 +8,8 @@ import logging
 from risk_scoring import RiskScorer
 from data_generator import generate_synthetic_fiat_data
 from utils import is_valid_ip, is_valid_eth_address
+from sqlalchemy.orm import Session
+from models import Transaction, db
 
 # Configure logging
 logging.basicConfig(
@@ -96,6 +98,17 @@ class RiskResponse(BaseModel):
     crypto_risk: Optional[Dict[str, Any]] = Field(None, description="Crypto risk details")
     processing_time: float = Field(..., description="Processing time in seconds")
 
+# Database dependency
+def get_db():
+    """FastAPI Dependency for getting a database session"""
+    try:
+        # Create a new database session
+        db_session = db.session
+        yield db_session
+    finally:
+        # Close the session
+        db_session.close()
+
 # Request logging middleware
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
@@ -133,12 +146,13 @@ async def root():
     }
 
 @app.post("/fraud-check", response_model=RiskResponse)
-async def fraud_check(transaction: TransactionRequest):
+async def fraud_check(transaction: TransactionRequest, db_session: Session = Depends(get_db)):
     """
-    Analyze a transaction for fraud risk
+    Analyze a transaction for fraud risk and store in database
     
     Args:
         transaction: Transaction details with fiat and/or crypto components
+        db_session: Database session (injected by FastAPI)
         
     Returns:
         RiskResponse: Risk analysis results
@@ -156,6 +170,21 @@ async def fraud_check(transaction: TransactionRequest):
         # Add processing time
         results['processing_time'] = round(time.time() - start_time, 4)
         
+        # Store the transaction and analysis in the database
+        try:
+            # Create a transaction record from the API result
+            db_transaction = Transaction.from_api_result(transaction_dict, results)
+            
+            # Add and commit to the database
+            db_session.add(db_transaction)
+            db_session.commit()
+            
+            logger.info(f"Transaction saved to database with ID: {db_transaction.id}")
+        except Exception as db_error:
+            logger.error(f"Failed to save transaction to database: {db_error}")
+            # Don't fail the API response if database save fails
+            db_session.rollback()
+        
         return results
     except Exception as e:
         logger.error(f"Error analyzing transaction: {e}")
@@ -168,6 +197,72 @@ async def fraud_check(transaction: TransactionRequest):
                 "processing_time": processing_time
             }
         )
+
+# Transaction history response model
+class TransactionHistoryItem(BaseModel):
+    id: int
+    transaction_type: str
+    amount: float
+    currency: str
+    timestamp: datetime.datetime
+    risk_score: float
+    risk_level: str
+    
+    class Config:
+        orm_mode = True
+
+class TransactionHistoryResponse(BaseModel):
+    transactions: List[TransactionHistoryItem]
+    total: int
+
+@app.get("/transactions", response_model=TransactionHistoryResponse)
+async def get_transaction_history(
+    db_session: Session = Depends(get_db),
+    limit: int = 20,
+    offset: int = 0,
+    min_risk: Optional[float] = None,
+    max_risk: Optional[float] = None,
+    transaction_type: Optional[str] = None
+):
+    """
+    Get transaction history with optional filtering
+    
+    Args:
+        db_session: Database session
+        limit: Maximum number of transactions to return
+        offset: Number of transactions to skip
+        min_risk: Minimum risk score filter
+        max_risk: Maximum risk score filter
+        transaction_type: Filter by transaction type (fiat, crypto, or both)
+        
+    Returns:
+        List of transactions
+    """
+    logger.info(f"Getting transaction history with filters: min_risk={min_risk}, max_risk={max_risk}, type={transaction_type}")
+    
+    # Build the query
+    query = db_session.query(Transaction)
+    
+    # Apply filters
+    if min_risk is not None:
+        query = query.filter(Transaction.risk_score >= min_risk)
+    
+    if max_risk is not None:
+        query = query.filter(Transaction.risk_score <= max_risk)
+    
+    if transaction_type:
+        query = query.filter(Transaction.transaction_type == transaction_type)
+    
+    # Get total count for pagination
+    total_count = query.count()
+    
+    # Apply pagination and get results
+    transactions = query.order_by(Transaction.timestamp.desc()).offset(offset).limit(limit).all()
+    
+    return {
+        "transactions": transactions,
+        "total": total_count
+    }
 
 @app.get("/health")
 async def health_check():
