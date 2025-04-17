@@ -575,8 +575,17 @@ def fraud_check_page():
                 
                 const result = await response.json();
                 
-                // Display the results
-                document.getElementById('results').style.display = 'block';
+                // Check if there's an error in the response
+                if (result.error) {
+                    document.getElementById('result-content').innerHTML = `
+                        <div class="alert alert-danger">
+                            <h4>Error:</h4>
+                            <p>${result.error}</p>
+                            <p>${result.message || ''}</p>
+                        </div>
+                    `;
+                    return;
+                }
                 
                 // Format the risk level with color
                 let riskClass = '';
@@ -590,10 +599,6 @@ def fraud_check_page():
                     riskClass = 'risk-critical';
                 }
                 
-                document.getElementById('risk-score').innerHTML = `
-                    <h3>Risk Score: <span class="${riskClass}">${result.risk_score.toFixed(1)} (${result.risk_level})</span></h3>
-                `;
-                
                 // Format alerts
                 let alertsHtml = '<h4>Alerts:</h4>';
                 if (result.alerts && result.alerts.length > 0) {
@@ -605,10 +610,14 @@ def fraud_check_page():
                 } else {
                     alertsHtml += '<p>No alerts detected.</p>';
                 }
-                document.getElementById('alerts').innerHTML = alertsHtml;
                 
-                // Show the raw JSON
-                document.getElementById('result-json').innerText = JSON.stringify(result, null, 2);
+                // Rebuild the entire result content
+                document.getElementById('result-content').innerHTML = `
+                    <h3>Risk Score: <span class="${riskClass}">${result.risk_score.toFixed(1)} (${result.risk_level})</span></h3>
+                    <div>${alertsHtml}</div>
+                    <h4>Details:</h4>
+                    <div class="result-box">${JSON.stringify(result, null, 2)}</div>
+                `;
                 
             } catch (error) {
                 document.getElementById('result-content').innerHTML = '<p>Error: ' + error.message + '</p>';
