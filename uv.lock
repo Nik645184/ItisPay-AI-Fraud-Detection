@@ -865,6 +865,7 @@ dependencies = [
     { name = "pydantic" },
     { name = "requests" },
     { name = "scikit-learn" },
+    { name = "sqlalchemy" },
     { name = "streamlit" },
     { name = "uvicorn" },
 ]
@@ -885,6 +886,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.11.3" },
     { name = "requests", specifier = ">=2.32.3" },
     { name = "scikit-learn", specifier = ">=1.6.1" },
+    { name = "sqlalchemy", specifier = ">=2.0.40" },
     { name = "streamlit", specifier = ">=1.44.1" },
     { name = "uvicorn", specifier = ">=0.34.1" },
 ]
