@@ -32,10 +32,24 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 # Initialize the database with the app
 db.init_app(app)
 
-# Create database tables if they don't exist
+# Create database tables if they don't exist, but safely
 with app.app_context():
-    logger.info("Creating database tables if they don't exist")
-    db.create_all()
+    try:
+        logger.info("Creating database tables if they don't exist")
+        
+        # Check if tables already exist and create them only if needed
+        from sqlalchemy import inspect
+        inspector = inspect(db.engine)
+        existing_tables = inspector.get_table_names()
+        
+        if 'transactions' not in existing_tables:
+            logger.info("Tables don't exist, creating them")
+            db.create_all()
+        else:
+            logger.info("Tables already exist, skipping creation")
+    except Exception as e:
+        logger.error(f"Error during database setup: {e}")
+        # Continue running even if there's a database error
 
 # HTML template for the landing page
 LANDING_PAGE_HTML = """
