@@ -288,8 +288,27 @@ class CryptoTransactionAnalyzer:
                     # Ensure we're dealing with a string to prevent integer overflow
                     if not isinstance(raw_value, str):
                         raw_value = str(raw_value)
-                    # Convert from wei to ETH, safely handling large numbers
-                    value = float(raw_value) / 1e18
+                    
+                    # Для очень больших чисел используем научную нотацию и округление
+                    if len(raw_value) > 15:
+                        # Форматируем в научную нотацию с 3 знаками после запятой
+                        sci_notation = '{:.3e}'.format(float(raw_value))
+                        parts = sci_notation.split('e')
+                        mantissa = float(parts[0])
+                        exponent = int(parts[1])
+                        # Учитываем деление на 1e18 (wei -> ETH) в экспоненте
+                        new_exponent = exponent - 18
+                        # Правильно рассчитываем значение с учетом экспоненты
+                        if new_exponent >= 0:
+                            value = mantissa * (10 ** new_exponent)
+                        else:
+                            value = mantissa / (10 ** abs(new_exponent))
+                        # Округляем до 3 знаков после запятой
+                        value = round(value, 3)
+                    else:
+                        # Для небольших чисел просто делим на 1e18 и округляем
+                        value = round(float(raw_value) / 1e18, 3)
+                    
                     total_value += value
                 except (ValueError, OverflowError) as e:
                     logger.warning(f"Error converting transaction value: {e}")
@@ -338,22 +357,45 @@ class CryptoTransactionAnalyzer:
         
         # Check for suspicious patterns
         try:
-            # Convert to DataFrame for easier analysis
-            df = pd.DataFrame(transactions)
+            # Предварительно обработаем транзакции для безопасного анализа
+            safe_transactions = []
+            for tx in transactions:
+                safe_tx = {}
+                for key, value in tx.items():
+                    # Преобразуем большие числа в строки перед добавлением в DataFrame
+                    if key in ['value', 'gasPrice', 'gas']:
+                        try:
+                            if isinstance(value, str) and len(value) > 15:
+                                # Для очень больших числовых строк, храним в научной нотации с округлением
+                                safe_tx[key] = '{:.3e}'.format(float(value))
+                            else:
+                                safe_tx[key] = value
+                        except (ValueError, TypeError):
+                            safe_tx[key] = '0'
+                    else:
+                        safe_tx[key] = value
+                safe_transactions.append(safe_tx)
+                
+            # Создаем DataFrame с защитой от переполнения
+            df = pd.DataFrame(safe_transactions)
             
             # Check account age
             if len(df) > 0 and 'timeStamp' in df.columns:
-                df['timeStamp'] = pd.to_numeric(df['timeStamp'])
-                newest_tx = df['timeStamp'].max()
-                oldest_tx = df['timeStamp'].min()
-                account_age_days = (newest_tx - oldest_tx) / (60 * 60 * 24)
-                
-                if account_age_days < 1:
-                    risk_score = max(risk_score, 0.7)
-                    alerts.append(f"New account: less than 1 day old")
-                elif account_age_days < 7:
-                    risk_score = max(risk_score, 0.4)
-                    alerts.append(f"New account: less than 7 days old")
+                # Безопасно преобразуем метки времени
+                try:
+                    df['timeStamp'] = df['timeStamp'].apply(lambda x: float(x) if x else 0)
+                    newest_tx = df['timeStamp'].max()
+                    oldest_tx = df['timeStamp'].min()
+                    account_age_days = round((newest_tx - oldest_tx) / (60 * 60 * 24), 3)
+                    
+                    if account_age_days < 1:
+                        risk_score = max(risk_score, 0.7)
+                        alerts.append(f"New account: less than 1 day old")
+                    elif account_age_days < 7:
+                        risk_score = max(risk_score, 0.4)
+                        alerts.append(f"New account: less than 7 days old")
+                except Exception as e:
+                    logger.warning(f"Error processing timestamps: {e}")
             
             # Check transaction count
             if len(df) == 1:
@@ -363,20 +405,27 @@ class CryptoTransactionAnalyzer:
             # Check for peeling chains (a chain of transactions decreasing in value)
             # This is a simplified check - a real implementation would be more sophisticated
             if len(df) >= 3 and 'value' in df.columns:
-                # Convert values to numeric
-                df['value'] = pd.to_numeric(df['value'])
-                
-                # Sort by timestamp
-                if 'timeStamp' in df.columns:
-                    df = df.sort_values('timeStamp')
-                
-                # Check for decreasing values
-                values = df['value'].tolist()
-                decreasing_count = sum(values[i] > values[i+1] for i in range(len(values)-1))
-                
-                if decreasing_count >= 2 and decreasing_count > len(values) * 0.5:
-                    risk_score = max(risk_score, 0.6)
-                    alerts.append("Possible peeling chain detected (decreasing transaction values)")
+                try:
+                    # Безопасно преобразуем значения с защитой от переполнения
+                    df['safe_value'] = df['value'].apply(
+                        lambda x: float(x) if isinstance(x, (int, float)) or (isinstance(x, str) and len(x) < 15) 
+                        else float(x.split('e')[0]) * (10 ** float(x.split('e')[1])) if 'e' in str(x)
+                        else 0
+                    )
+                    
+                    # Sort by timestamp if available
+                    if 'timeStamp' in df.columns:
+                        df = df.sort_values('timeStamp')
+                    
+                    # Check for decreasing values
+                    values = df['safe_value'].tolist()
+                    decreasing_count = sum(values[i] > values[i+1] for i in range(len(values)-1))
+                    
+                    if decreasing_count >= 2 and decreasing_count > len(values) * 0.5:
+                        risk_score = max(risk_score, 0.6)
+                        alerts.append("Possible peeling chain detected (decreasing transaction values)")
+                except Exception as e:
+                    logger.warning(f"Error analyzing transaction values: {e}")
             
             # Add more pattern analyses as needed
             
