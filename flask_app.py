@@ -62,6 +62,28 @@ LANDING_PAGE_HTML = """
         .feature-icon {
             margin-right: 10px;
         }
+        .btn-link-manual {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: bold;
+            margin: 10px;
+            text-align: center;
+        }
+        .btn-link-manual.secondary {
+            background-color: #6c757d;
+        }
+        .manual-instruction {
+            margin: 15px;
+            padding: 15px;
+            background-color: rgba(255, 255, 100, 0.2);
+            border-radius: 5px;
+            max-width: 500px;
+            text-align: left;
+        }
     </style>
 </head>
 <body>
@@ -95,9 +117,34 @@ LANDING_PAGE_HTML = """
             </div>
         </div>
         
-        <a href="/proxy/8501/" class="btn btn-primary btn-lg" target="_blank">Launch Interactive UI</a>
-        <a href="/proxy/8000/docs" class="btn btn-secondary btn-lg" target="_blank">API Documentation</a>
+        <div class="manual-instruction">
+            <p><strong>Для доступа к компонентам системы:</strong></p>
+            <ol>
+                <li>Откройте интерактивный интерфейс, добавив к текущему URL следующий путь: <code>/proxy/8501/</code></li>
+                <li>Для доступа к API документации добавьте: <code>/proxy/8000/docs</code></li>
+            </ol>
+        </div>
+        
+        <div>
+            <a class="btn-link-manual" id="ui-link" href="#" onclick="window.open(window.location.origin + '/proxy/8501/', '_blank')">Запустить интерфейс</a>
+            <a class="btn-link-manual secondary" id="api-link" href="#" onclick="window.open(window.location.origin + '/proxy/8000/docs', '_blank')">API документация</a>
+        </div>
     </div>
+    
+    <script>
+    // Add JavaScript to help with navigation
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log("Page loaded");
+        
+        // Get the current domain
+        const domain = window.location.origin;
+        console.log("Current domain:", domain);
+        
+        // Update links for direct navigation
+        document.getElementById('ui-link').href = domain + '/proxy/8501/';
+        document.getElementById('api-link').href = domain + '/proxy/8000/docs';
+    });
+    </script>
 </body>
 </html>
 """
