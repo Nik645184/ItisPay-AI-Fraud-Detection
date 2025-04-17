@@ -1014,6 +1014,10 @@ def api_fraud_check():
         # Add processing time
         results['processing_time'] = round(time.time() - start_time, 4)
         
+        # Print response status for debugging
+        print("Response Status: 200 OK")
+        print(f"Response Data: {results}")
+        
         # Store in database
         with app.app_context():
             try:
@@ -1088,6 +1092,10 @@ def api_transactions():
                     "risk_score": tx.risk_score,
                     "risk_level": tx.risk_level
                 })
+            
+            # Print response status for debugging
+            print("Response Status: 200 OK")
+            print(f"Response Data: {{'transactions': {len(result)}, 'total': {total_count}}}")
             
             return jsonify({
                 "transactions": result,
