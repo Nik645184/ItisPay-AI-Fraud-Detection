@@ -25,6 +25,7 @@ KNOWN_DARKNET_ADDRESSES = {
     '0xbc830d54ed5e9e26d3a30d71a1e8dc6d42860345',  # Example darknet market
     '0x67fa2c06c9c6d4332f330e14a66bdf1873ef3d2b',  # Example darknet market
     '0x9cb4b8297548f3be359f7ddf4302af6d2288e08f',  # Example darknet market
+    '0x9cb4b8297548f3be359f7ddf4302af6d2288e09t',  # Example darknet market
 }
 
 # Known scam addresses (examples for demonstration)
